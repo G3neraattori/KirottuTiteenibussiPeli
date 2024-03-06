@@ -102,11 +102,12 @@ const ahmo = {
 };
 
 let gameOver = false;
-let score = 0;
+let score = 9;
 let speedIncreaseTimer = 0;
 let timer = 5;
 let paused = false; // Variable to keep track of whether the game is paused
 let scoreNotificationShown = false; // Variable to track whether the 10 score notification has been shown
+let gameStarted = false; // Variable to track whether the game has started
 
 gameLoop(); // Start the game loop immediately
 
@@ -116,12 +117,16 @@ function draw() {
     ctx.font = '20px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Score: ' + score, canvas.width / 2, 30);
-    // Draw the dude image at the top-left corner
-    ctx.drawImage(dudeImage, 10, 10, 64, 64);
-    // Draw the table image in the middle-right area
-    ctx.drawImage(tableImage, canvas.width - 74, canvas.height / 2 - 32, 64, 64);
-    // Draw the timer below the dude image
-    ctx.fillText('Timer: ' + timer, 10, 90);
+
+    if (gameStarted) {
+        // Draw the dude image at the top-left corner
+        ctx.drawImage(dudeImage, 10, 10, 64, 64);
+        // Draw the table image in the middle-right area
+        ctx.drawImage(tableImage, canvas.width - 74, canvas.height / 2 - 32, 64, 64);
+        // Draw the timer below the dude image
+        ctx.fillText('Timer: ' + timer, 10, 90);
+    }
+
     if (paused) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -158,6 +163,8 @@ function update() {
         if (score === 10 && !scoreNotificationShown) {
             paused = true;
             scoreNotificationShown = true;
+            gameStarted = true;
+            speedIncreaseTimer = Date.now();
         }
     }
 }
@@ -167,7 +174,7 @@ function gameLoop() {
     update();
     requestAnimationFrame(gameLoop); // Keep looping
     // Decrease timer every second
-    if (!paused && !gameOver && Date.now() - speedIncreaseTimer > 1000) {
+    if (!paused && !gameOver && gameStarted && Date.now() - speedIncreaseTimer > 1000) {
         timer--;
         speedIncreaseTimer = Date.now();
         if (timer === 0) {
@@ -175,7 +182,7 @@ function gameLoop() {
         }
     }
     // Increase speed every 3 seconds
-    if (!paused && !gameOver && Date.now() - speedIncreaseTimer > 3000) {
+    if (!paused && !gameOver && gameStarted && Date.now() - speedIncreaseTimer > 3000) {
         obstacle.speed += 0.5;
         dino.speed += 0.5;
         speedIncreaseTimer = Date.now();
