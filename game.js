@@ -1,8 +1,14 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const image = new Image();
-image.src = 'image.png';
+const dudeImage = new Image();
+dudeImage.src = 'dude.png';
+
+const ahmoImage = new Image();
+ahmoImage.src = 'ahmo.png';
+
+const tableImage = new Image();
+tableImage.src = 'table.png';
 
 function fitToScreen() {
     // Fit canvas to screen
@@ -69,6 +75,32 @@ const obstacle = {
     }
 };
 
+// Ahmo object
+const ahmo = {
+    x: canvas.width - 74, // Initial x position (right of canvas)
+    y: 10, // Initial y position (top of canvas)
+    speed: 1, // Speed of movement
+    initialX: canvas.width - 74, // Initial x position for reset
+    initialY: 10, // Initial y position for reset
+    draw() {
+        ctx.drawImage(ahmoImage, this.x, this.y, 64, 64);
+    },
+    update() {
+        // Move ahmo downwards
+        if (this.y < canvas.height - 74) {
+            this.y += this.speed;
+        }
+        // Check if ahmo goes below the table
+        if (this.y + 64 > canvas.height / 2) {
+            gameOver = true;
+        }
+    },
+    resetPosition() {
+        this.x = this.initialX;
+        this.y = this.initialY;
+    }
+};
+
 let gameOver = false;
 let score = 0;
 let speedIncreaseTimer = 0;
@@ -82,9 +114,11 @@ function draw() {
     ctx.font = '20px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Score: ' + score, canvas.width / 2, 30);
-    // Draw the image at the top-left corner
-    ctx.drawImage(image, 10, 10, 64, 64);
-    // Draw the timer below the image
+    // Draw the dude image at the top-left corner
+    ctx.drawImage(dudeImage, 10, 10, 64, 64);
+    // Draw the table image in the middle-right area
+    ctx.drawImage(tableImage, canvas.width - 74, canvas.height / 2 - 32, 64, 64);
+    // Draw the timer below the dude image
     ctx.fillText('Timer: ' + timer, 10, 90);
     if (gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -96,12 +130,14 @@ function draw() {
     } else {
         dino.draw();
         obstacle.draw();
+        ahmo.draw();
     }
 }
 
 function update() {
     if (!gameOver) {
         obstacle.update();
+        ahmo.update(); // Update ahmo's position
         if (
             dino.x < obstacle.x + obstacle.width &&
             dino.x + dino.width > obstacle.x &&
@@ -149,7 +185,9 @@ canvas.addEventListener('click', (e) => {
         const clickX = e.clientX - rect.left;
         const clickY = e.clientY - rect.top;
         if (clickX >= 10 && clickX <= 74 && clickY >= 10 && clickY <= 74) {
-            timer = 5; // Reset timer if clicked on the image
+            timer = 5; // Reset timer if clicked on the dude image
+        } else if (clickX >= ahmo.x && clickX <= ahmo.x + 64 && clickY >= ahmo.y && clickY <= ahmo.y + 64) {
+            ahmo.resetPosition(); // Reset ahmo's position if clicked on the ahmo image
         } else {
             dino.jump();
         }
@@ -166,7 +204,9 @@ canvas.addEventListener('touchstart', (e) => {
         const touchX = e.touches[0].clientX - rect.left;
         const touchY = e.touches[0].clientY - rect.top;
         if (touchX >= 10 && touchX <= 74 && touchY >= 10 && touchY <= 74) {
-            timer = 5; // Reset timer if touched on the image
+            timer = 5; // Reset timer if touched on the dude image
+        } else if (touchX >= ahmo.x && touchX <= ahmo.x + 64 && touchY >= ahmo.y && touchY <= ahmo.y + 64) {
+            ahmo.resetPosition(); // Reset ahmo's position if touched on the ahmo image
         } else {
             dino.jump();
         }
