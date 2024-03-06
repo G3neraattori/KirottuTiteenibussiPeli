@@ -105,6 +105,8 @@ let gameOver = false;
 let score = 0;
 let speedIncreaseTimer = 0;
 let timer = 5;
+let paused = false; // Variable to keep track of whether the game is paused
+let scoreNotificationShown = false; // Variable to track whether the 10 score notification has been shown
 
 gameLoop(); // Start the game loop immediately
 
@@ -120,7 +122,14 @@ function draw() {
     ctx.drawImage(tableImage, canvas.width - 74, canvas.height / 2 - 32, 64, 64);
     // Draw the timer below the dude image
     ctx.fillText('Timer: ' + timer, 10, 90);
-    if (gameOver) {
+    if (paused) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = '30px Arial';
+        ctx.fillText('You hit 10 score', canvas.width / 2, canvas.height / 2 - 15);
+        ctx.fillText('Tap to continue.', canvas.width / 2, canvas.height / 2 + 15);
+    } else if (gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
@@ -135,7 +144,7 @@ function draw() {
 }
 
 function update() {
-    if (!gameOver) {
+    if (!paused && !gameOver) {
         obstacle.update();
         ahmo.update(); // Update ahmo's position
         if (
@@ -146,6 +155,10 @@ function update() {
         ) {
             gameOver = true;
         }
+        if (score === 10 && !scoreNotificationShown) {
+            paused = true;
+            scoreNotificationShown = true;
+        }
     }
 }
 
@@ -154,7 +167,7 @@ function gameLoop() {
     update();
     requestAnimationFrame(gameLoop); // Keep looping
     // Decrease timer every second
-    if (!gameOver && Date.now() - speedIncreaseTimer > 1000) {
+    if (!paused && !gameOver && Date.now() - speedIncreaseTimer > 1000) {
         timer--;
         speedIncreaseTimer = Date.now();
         if (timer === 0) {
@@ -162,7 +175,7 @@ function gameLoop() {
         }
     }
     // Increase speed every 3 seconds
-    if (!gameOver && Date.now() - speedIncreaseTimer > 3000) {
+    if (!paused && !gameOver && Date.now() - speedIncreaseTimer > 3000) {
         obstacle.speed += 0.5;
         dino.speed += 0.5;
         speedIncreaseTimer = Date.now();
@@ -171,16 +184,16 @@ function gameLoop() {
 
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
-        if (!gameOver) {
+        if (!paused && !gameOver) {
             dino.jump();
-        } else {
+        } else if (gameOver) {
             document.location.reload();
         }
     }
 });
 
 canvas.addEventListener('click', (e) => {
-    if (!gameOver) {
+    if (!paused && !gameOver) {
         const rect = canvas.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const clickY = e.clientY - rect.top;
@@ -191,15 +204,17 @@ canvas.addEventListener('click', (e) => {
         } else {
             dino.jump();
         }
+    } else if (paused) {
+        paused = false; // Resume the game if paused
     } else {
-        document.location.reload();
+        document.location.reload(); // Restart the game if game over
     }
 });
 
 // Handle touch events for mobile devices
 canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    if (!gameOver) {
+    if (!paused && !gameOver) {
         const rect = canvas.getBoundingClientRect();
         const touchX = e.touches[0].clientX - rect.left;
         const touchY = e.touches[0].clientY - rect.top;
@@ -210,7 +225,9 @@ canvas.addEventListener('touchstart', (e) => {
         } else {
             dino.jump();
         }
+    } else if (paused) {
+        paused = false; // Resume the game if paused
     } else {
-        document.location.reload();
+        document.location.reload(); // Restart the game if game over
     }
 });
