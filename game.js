@@ -10,6 +10,9 @@ ahmoImage.src = 'ahmo.png';
 const tableImage = new Image();
 tableImage.src = 'table.png';
 
+const riipasuImage = new Image();
+riipasuImage.src = 'riipasu.png';
+
 function fitToScreen() {
     // Fit canvas to screen
     canvas.width = window.innerWidth;
@@ -101,12 +104,48 @@ const ahmo = {
     }
 };
 
+// Table object
+const table = {
+    x: canvas.width - 74, // Initial x position (right of canvas)
+    y: canvas.height / 2 - 32, // Initial y position (middle of canvas)
+    draw() {
+        ctx.drawImage(tableImage, this.x, this.y, 64, 64);
+    }
+};
+
+// Riipasu object
+const riipasu = {
+    x: 10, // Initial x position (left of canvas)
+    y: canvas.height / 2 - 32, // Initial y position (middle of canvas)
+    visible: true, // Indicates whether the image is visible
+    taps: 0, // Counter for taps on the image
+    lastTapTime: 0, // Timestamp for the last tap
+    draw() {
+        if (this.visible) {
+            ctx.drawImage(riipasuImage, this.x, this.y, 64, 64);
+        }
+    },
+    update() {
+        if (this.taps === 5) {
+            this.visible = false; // Hide the image if tapped 5 times
+            this.taps = 0; // Reset tap counter
+            // Randomly decide when to make the image reappear
+            const randomInterval = Math.random() * (2000 - 200) + 200; // Random interval between 0.2-2 seconds
+            setTimeout(() => {
+                this.visible = true; // Make the image reappear after the random interval
+            }, randomInterval);
+        }
+    }
+};
+
 let gameOver = false;
-let score = 9;
+let score = 29;
 let speedIncreaseTimer = 0;
 let timer = 5;
 let paused = false; // Variable to keep track of whether the game is paused
-let scoreNotificationShown = false; // Variable to track whether the 10 score notification has been shown
+let scoreNotification10Shown = false; // Variable to track whether the 10 score notification has been shown
+let scoreNotification20Shown = false; // Variable to track whether the 20 score notification has been shown
+let scoreNotification30Shown = false; // Variable to track whether the 30 score notification has been shown
 let gameStarted = false; // Variable to track whether the game has started
 
 gameLoop(); // Start the game loop immediately
@@ -121,10 +160,17 @@ function draw() {
     if (gameStarted) {
         // Draw the dude image at the top-left corner
         ctx.drawImage(dudeImage, 10, 10, 64, 64);
-        // Draw the table image in the middle-right area
-        ctx.drawImage(tableImage, canvas.width - 74, canvas.height / 2 - 32, 64, 64);
         // Draw the timer below the dude image
         ctx.fillText('Timer: ' + timer, 10, 90);
+        // Draw Ahmo and Table only after the 20 score notification is shown
+        if (scoreNotification20Shown) {
+            ahmo.draw();
+            table.draw();
+        }
+        // Draw Riipasu if the 30 score notification is shown
+        if (scoreNotification30Shown) {
+            riipasu.draw();
+        }
     }
 
     if (paused) {
@@ -132,7 +178,13 @@ function draw() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
         ctx.font = '30px Arial';
-        ctx.fillText('You hit 10 score', canvas.width / 2, canvas.height / 2 - 15);
+        if (!scoreNotification10Shown && score === 10) {
+            ctx.fillText('You hit 10 score', canvas.width / 2, canvas.height / 2 - 15);
+        } else if (!scoreNotification20Shown && score === 20) {
+            ctx.fillText('You hit 20 score', canvas.width / 2, canvas.height / 2 - 15);
+        } else if (!scoreNotification30Shown && score === 30) {
+            ctx.fillText('You hit 30 score', canvas.width / 2, canvas.height / 2 - 15);
+        }
         ctx.fillText('Tap to continue.', canvas.width / 2, canvas.height / 2 + 15);
     } else if (gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -144,14 +196,27 @@ function draw() {
     } else {
         dino.draw();
         obstacle.draw();
-        ahmo.draw();
+        // Draw Ahmo and Table only after the 20 score notification is shown
+        if (scoreNotification20Shown) {
+            ahmo.draw();
+            table.draw();
+        }
+        // Draw Riipasu if the 30 score notification is shown
+        if (scoreNotification30Shown) {
+            riipasu.draw();
+        }
     }
 }
 
 function update() {
     if (!paused && !gameOver) {
         obstacle.update();
-        ahmo.update(); // Update ahmo's position
+        // Update Ahmo only after the 20 score notification is shown
+        if (scoreNotification20Shown) {
+            ahmo.update();
+        }
+        // Update Riipasu
+        riipasu.update();
         if (
             dino.x < obstacle.x + obstacle.width &&
             dino.x + dino.width > obstacle.x &&
@@ -160,9 +225,19 @@ function update() {
         ) {
             gameOver = true;
         }
-        if (score === 10 && !scoreNotificationShown) {
+        if (score === 10 && !scoreNotification10Shown) {
             paused = true;
-            scoreNotificationShown = true;
+            scoreNotification10Shown = true;
+            gameStarted = true;
+            speedIncreaseTimer = Date.now();
+        } else if (score === 20 && !scoreNotification20Shown) {
+            paused = true;
+            scoreNotification20Shown = true;
+            gameStarted = true;
+            speedIncreaseTimer = Date.now();
+        } else if (score === 30 && !scoreNotification30Shown) {
+            paused = true;
+            scoreNotification30Shown = true;
             gameStarted = true;
             speedIncreaseTimer = Date.now();
         }
@@ -208,6 +283,8 @@ canvas.addEventListener('click', (e) => {
             timer = 5; // Reset timer if clicked on the dude image
         } else if (clickX >= ahmo.x && clickX <= ahmo.x + 64 && clickY >= ahmo.y && clickY <= ahmo.y + 64) {
             ahmo.resetPosition(); // Reset ahmo's position if clicked on the ahmo image
+        } else if (clickX >= riipasu.x && clickX <= riipasu.x + 64 && clickY >= riipasu.y && clickY <= riipasu.y + 64 && riipasu.visible) {
+            riipasu.taps++; // Increment tap counter if the image is tapped and visible
         } else {
             dino.jump();
         }
@@ -229,6 +306,8 @@ canvas.addEventListener('touchstart', (e) => {
             timer = 5; // Reset timer if touched on the dude image
         } else if (touchX >= ahmo.x && touchX <= ahmo.x + 64 && touchY >= ahmo.y && touchY <= ahmo.y + 64) {
             ahmo.resetPosition(); // Reset ahmo's position if touched on the ahmo image
+        } else if (touchX >= riipasu.x && touchX <= riipasu.x + 64 && touchY >= riipasu.y && touchY <= riipasu.y + 64 && riipasu.visible) {
+            riipasu.taps++; // Increment tap counter if the image is tapped and visible
         } else {
             dino.jump();
         }
