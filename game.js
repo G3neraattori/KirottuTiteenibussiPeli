@@ -1,8 +1,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const dudeImage = new Image();
-dudeImage.src = 'dude.png';
+const busImage = new Image();
+busImage.src = 'bus.png';
 
 const ahmoImage = new Image();
 ahmoImage.src = 'ahmo.png';
@@ -22,8 +22,8 @@ function fitToScreen() {
 fitToScreen(); // Call initially
 window.addEventListener('resize', fitToScreen); // Adjust size on window resize
 
-// Dinosaur object
-const dino = {
+// Bus object
+const bus = {
     x: 50,
     y: canvas.height - 50,
     width: 50,
@@ -33,8 +33,7 @@ const dino = {
     jumpHeight: 100,
     jumpSpeed: 7,
     draw() {
-        ctx.fillStyle = '#666';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.drawImage(busImage, this.x, this.y, this.width, this.height);
     },
     jump() {
         if (!this.jumping) {
@@ -117,23 +116,40 @@ const table = {
 const riipasu = {
     x: 10, // Initial x position (left of canvas)
     y: canvas.height / 2 - 32, // Initial y position (middle of canvas)
-    visible: true, // Indicates whether the image is visible
-    taps: 0, // Counter for taps on the image
-    lastTapTime: 0, // Timestamp for the last tap
+    visible: false, // Flag to track visibility
+    tapsNeeded: 5, // Number of taps needed to make it disappear
+    tapCount: 0, // Current tap count
+    visibleTimer: 0, // Timer to track visibility duration
+    appear() {
+        this.x = 10 + Math.random() * (canvas.width / 2 - 74); // Random x position between left edge and middle of canvas
+        this.y = canvas.height / 2 - 32 + Math.random() * (canvas.height / 2 - 74); // Random y position between middle and bottom of canvas
+        this.visible = true;
+        this.tapsNeeded = 5;
+        this.tapCount = 0;
+        this.visibleTimer = Date.now();
+    },
     draw() {
         if (this.visible) {
             ctx.drawImage(riipasuImage, this.x, this.y, 64, 64);
         }
     },
     update() {
-        if (this.taps === 5) {
-            this.visible = false; // Hide the image if tapped 5 times
-            this.taps = 0; // Reset tap counter
-            // Randomly decide when to make the image reappear
-            const randomInterval = Math.random() * (2000 - 200) + 200; // Random interval between 0.2-2 seconds
-            setTimeout(() => {
-                this.visible = true; // Make the image reappear after the random interval
-            }, randomInterval);
+        if (this.visible && Date.now() - this.visibleTimer > 2000) {
+            // If visible for more than 2 seconds, make it disappear and trigger game over
+            this.visible = false;
+            gameOver = true;
+        }
+    },
+    handleTap() {
+        if (this.visible && this.tapCount < this.tapsNeeded) {
+            this.tapCount++;
+            if (this.tapCount >= this.tapsNeeded) {
+                this.visible = false;
+                // Reset tap count for next appearance
+                setTimeout(() => {
+                    this.appear();
+                }, Math.random() * 1800 + 200);
+            }
         }
     }
 };
@@ -146,6 +162,7 @@ let paused = false; // Variable to keep track of whether the game is paused
 let scoreNotification10Shown = false; // Variable to track whether the 10 score notification has been shown
 let scoreNotification20Shown = false; // Variable to track whether the 20 score notification has been shown
 let scoreNotification30Shown = false; // Variable to track whether the 30 score notification has been shown
+let winNotificationShown = false; // Variable to track whether the win notification has been shown
 let gameStarted = false; // Variable to track whether the game has started
 
 gameLoop(); // Start the game loop immediately
@@ -158,9 +175,9 @@ function draw() {
     ctx.fillText('Score: ' + score, canvas.width / 2, 30);
 
     if (gameStarted) {
-        // Draw the dude image at the top-left corner
-        ctx.drawImage(dudeImage, 10, 10, 64, 64);
-        // Draw the timer below the dude image
+        // Draw the bus image at the top-left corner
+        ctx.drawImage(busImage, 10, 10, 64, 64);
+        // Draw the timer below the bus image
         ctx.fillText('Timer: ' + timer, 10, 90);
         // Draw Ahmo and Table only after the 20 score notification is shown
         if (scoreNotification20Shown) {
@@ -184,6 +201,8 @@ function draw() {
             ctx.fillText('You hit 20 score', canvas.width / 2, canvas.height / 2 - 15);
         } else if (!scoreNotification30Shown && score === 30) {
             ctx.fillText('You hit 30 score', canvas.width / 2, canvas.height / 2 - 15);
+        } else if (!winNotificationShown && score === 50) {
+            ctx.fillText('You win!', canvas.width / 2, canvas.height / 2 - 15);
         }
         ctx.fillText('Tap to continue.', canvas.width / 2, canvas.height / 2 + 15);
     } else if (gameOver) {
@@ -194,7 +213,7 @@ function draw() {
         ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2 - 15);
         ctx.fillText('Tap to restart.', canvas.width / 2, canvas.height / 2 + 15);
     } else {
-        dino.draw();
+        bus.draw();
         obstacle.draw();
         // Draw Ahmo and Table only after the 20 score notification is shown
         if (scoreNotification20Shown) {
@@ -215,13 +234,15 @@ function update() {
         if (scoreNotification20Shown) {
             ahmo.update();
         }
-        // Update Riipasu
-        riipasu.update();
+        // Update Riipasu if the 30 score notification is shown
+        if (scoreNotification30Shown) {
+            riipasu.update();
+        }
         if (
-            dino.x < obstacle.x + obstacle.width &&
-            dino.x + dino.width > obstacle.x &&
-            dino.y < obstacle.y + obstacle.height &&
-            dino.y + dino.height > obstacle.y
+            bus.x < obstacle.x + obstacle.width &&
+            bus.x + bus.width > obstacle.x &&
+            bus.y < obstacle.y + obstacle.height &&
+            bus.y + bus.height > obstacle.y
         ) {
             gameOver = true;
         }
@@ -240,6 +261,14 @@ function update() {
             scoreNotification30Shown = true;
             gameStarted = true;
             speedIncreaseTimer = Date.now();
+            // Make Riipasu appear on a random interval after reaching 30 score
+            setTimeout(() => {
+                riipasu.appear();
+            }, Math.random() * 1800 + 200); // Random interval between 0.2s and 2s
+        } else if (score === 50 && !winNotificationShown) {
+            paused = true;
+            winNotificationShown = true;
+            gameStarted = true;
         }
     }
 }
@@ -259,15 +288,15 @@ function gameLoop() {
     // Increase speed every 3 seconds
     if (!paused && !gameOver && gameStarted && Date.now() - speedIncreaseTimer > 3000) {
         obstacle.speed += 0.5;
-        dino.speed += 0.5;
+        bus.speed += 0.5;
         speedIncreaseTimer = Date.now();
     }
 }
 
 document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
-        if (!paused && !gameOver) {
-            dino.jump();
+        if (!paused && !gameOver && !winNotificationShown) {
+            bus.jump();
         } else if (gameOver) {
             document.location.reload();
         }
@@ -275,22 +304,27 @@ document.addEventListener('keydown', (e) => {
 });
 
 canvas.addEventListener('click', (e) => {
-    if (!paused && !gameOver) {
+    if (!paused && !gameOver && !winNotificationShown) {
         const rect = canvas.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const clickY = e.clientY - rect.top;
         if (clickX >= 10 && clickX <= 74 && clickY >= 10 && clickY <= 74) {
-            timer = 5; // Reset timer if clicked on the dude image
+            timer = 5; // Reset timer if clicked on the bus image
         } else if (clickX >= ahmo.x && clickX <= ahmo.x + 64 && clickY >= ahmo.y && clickY <= ahmo.y + 64) {
             ahmo.resetPosition(); // Reset ahmo's position if clicked on the ahmo image
-        } else if (clickX >= riipasu.x && clickX <= riipasu.x + 64 && clickY >= riipasu.y && clickY <= riipasu.y + 64 && riipasu.visible) {
-            riipasu.taps++; // Increment tap counter if the image is tapped and visible
+        } else if (
+            clickX >= riipasu.x &&
+            clickX <= riipasu.x + 64 &&
+            clickY >= riipasu.y &&
+            clickY <= riipasu.y + 64
+        ) {
+            riipasu.handleTap();
         } else {
-            dino.jump();
+            bus.jump();
         }
-    } else if (paused) {
+    } else if (paused && !winNotificationShown) {
         paused = false; // Resume the game if paused
-    } else {
+    } else if (gameOver && !winNotificationShown) {
         document.location.reload(); // Restart the game if game over
     }
 });
@@ -298,22 +332,27 @@ canvas.addEventListener('click', (e) => {
 // Handle touch events for mobile devices
 canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    if (!paused && !gameOver) {
+    if (!paused && !gameOver && !winNotificationShown) {
         const rect = canvas.getBoundingClientRect();
         const touchX = e.touches[0].clientX - rect.left;
         const touchY = e.touches[0].clientY - rect.top;
         if (touchX >= 10 && touchX <= 74 && touchY >= 10 && touchY <= 74) {
-            timer = 5; // Reset timer if touched on the dude image
+            timer = 5; // Reset timer if touched on the bus image
         } else if (touchX >= ahmo.x && touchX <= ahmo.x + 64 && touchY >= ahmo.y && touchY <= ahmo.y + 64) {
             ahmo.resetPosition(); // Reset ahmo's position if touched on the ahmo image
-        } else if (touchX >= riipasu.x && touchX <= riipasu.x + 64 && touchY >= riipasu.y && touchY <= riipasu.y + 64 && riipasu.visible) {
-            riipasu.taps++; // Increment tap counter if the image is tapped and visible
+        } else if (
+            touchX >= riipasu.x &&
+            touchX <= riipasu.x + 64 &&
+            touchY >= riipasu.y &&
+            touchY <= riipasu.y + 64
+        ) {
+            riipasu.handleTap();
         } else {
-            dino.jump();
+            bus.jump();
         }
-    } else if (paused) {
+    } else if (paused && !winNotificationShown) {
         paused = false; // Resume the game if paused
-    } else {
+    } else if (gameOver && !winNotificationShown) {
         document.location.reload(); // Restart the game if game over
     }
 });
