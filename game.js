@@ -13,6 +13,10 @@ tableImage.src = 'table.png';
 const riipasuImage = new Image();
 riipasuImage.src = 'riipasu.png';
 
+const dudeImage = new Image();
+dudeImage.src = 'dude.png';
+
+
 function fitToScreen() {
     // Fit canvas to screen
     canvas.width = window.innerWidth;
@@ -155,7 +159,7 @@ const riipasu = {
 };
 
 let gameOver = false;
-let score = 0;
+let score = 9;
 let speedIncreaseTimer = 0;
 let timer = 5;
 let paused = false; // Variable to keep track of whether the game is paused
@@ -175,8 +179,8 @@ function draw() {
     ctx.fillText('Score: ' + score, canvas.width / 2, 30);
 
     if (gameStarted) {
-        // Draw the bus image at the top-left corner
-        ctx.drawImage(busImage, 10, 10, 64, 64);
+        // Draw the dude image at the top-left corner
+        ctx.drawImage(dudeImage, 10, 10, 64, 64);
         // Draw the timer below the bus image
         ctx.fillText('Timer: ' + timer, 10, 90);
         // Draw Ahmo and Table only after the 20 score notification is shown
