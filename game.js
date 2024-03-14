@@ -159,7 +159,7 @@ const riipasu = {
 };
 
 let gameOver = false;
-let score = 9;
+let score = 0;
 let speedIncreaseTimer = 0;
 let timer = 5;
 let paused = false; // Variable to keep track of whether the game is paused
