@@ -117,14 +117,14 @@ const riipasu = {
     x: 10, // Initial x position (left of canvas)
     y: canvas.height / 2 - 32, // Initial y position (middle of canvas)
     visible: false, // Flag to track visibility
-    tapsNeeded: 5, // Number of taps needed to make it disappear
+    tapsNeeded: 0, // Number of taps needed to make it disappear (initially 0)
     tapCount: 0, // Current tap count
     visibleTimer: 0, // Timer to track visibility duration
     appear() {
         this.x = 10 + Math.random() * (canvas.width / 2 - 74); // Random x position between left edge and middle of canvas
         this.y = canvas.height / 2 - 32 + Math.random() * (canvas.height / 2 - 74); // Random y position between middle and bottom of canvas
         this.visible = true;
-        this.tapsNeeded = 5;
+        this.tapsNeeded = Math.floor(Math.random() * 3) + 1; // Random taps needed between 1 and 3
         this.tapCount = 0;
         this.visibleTimer = Date.now();
     },
@@ -155,7 +155,7 @@ const riipasu = {
 };
 
 let gameOver = false;
-let score = 29;
+let score = 0;
 let speedIncreaseTimer = 0;
 let timer = 5;
 let paused = false; // Variable to keep track of whether the game is paused
@@ -195,14 +195,20 @@ function draw() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
         ctx.font = '30px Arial';
-        if (!scoreNotification10Shown && score === 10) {
-            ctx.fillText('You hit 10 score', canvas.width / 2, canvas.height / 2 - 15);
-        } else if (!scoreNotification20Shown && score === 20) {
-            ctx.fillText('You hit 20 score', canvas.width / 2, canvas.height / 2 - 15);
-        } else if (!scoreNotification30Shown && score === 30) {
-            ctx.fillText('You hit 30 score', canvas.width / 2, canvas.height / 2 - 15);
-        } else if (!winNotificationShown && score === 50) {
-            ctx.fillText('You win!', canvas.width / 2, canvas.height / 2 - 15);
+        if (score === 10 && scoreNotification10Shown) {
+            ctx.fillText('Kaiffareilla on jano.', canvas.width / 2, canvas.height / 2 - 75);
+            ctx.fillText('Anna heille juomaa', canvas.width / 2, canvas.height / 2 - 45);
+            ctx.fillText('vähintään 5s välein', canvas.width / 2, canvas.height / 2 - 15);
+        } else if (score === 20 && scoreNotification20Shown) {
+            ctx.fillText('Ahmo meinaa juoda', canvas.width / 2, canvas.height / 2 - 75);
+            ctx.fillText('itsensä pyödän alle.', canvas.width / 2, canvas.height / 2 - 45);
+            ctx.fillText('Estä häntä', canvas.width / 2, canvas.height / 2 - 15);
+        } else if (score === 30 && scoreNotification30Shown) {
+            ctx.fillText('Bowers meinaa riipaista', canvas.width / 2, canvas.height / 2 - 75);
+            ctx.fillText('kurkkuun. ', canvas.width / 2, canvas.height / 2 - 45);
+            ctx.fillText('Aja täysimpää', canvas.width / 2, canvas.height / 2 - 15);
+        } else if (score === 50 && winNotificationShown) {
+            ctx.fillText('Pääsit perille ouluun!', canvas.width / 2, canvas.height / 2 - 15);
         }
         ctx.fillText('Tap to continue.', canvas.width / 2, canvas.height / 2 + 15);
     } else if (gameOver) {
@@ -215,15 +221,6 @@ function draw() {
     } else {
         bus.draw();
         obstacle.draw();
-        // Draw Ahmo and Table only after the 20 score notification is shown
-        if (scoreNotification20Shown) {
-            ahmo.draw();
-            table.draw();
-        }
-        // Draw Riipasu if the 30 score notification is shown
-        if (scoreNotification30Shown) {
-            riipasu.draw();
-        }
     }
 }
 
